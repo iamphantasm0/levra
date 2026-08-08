@@ -93,6 +93,7 @@ User / Agent Caller
 
 | Layer | Choice | Why |
 |---|---|---|
+| Language | Python 3.12 | Matches your existing stack (Cypra, FastAPI/aiogram) — no context-switch cost |
 | API framework | FastAPI | Your default stack, fast to ship |
 | Async/queueing | Redis (if needed for rate-limiting x402 calls) | Already know it from Cypra |
 | Deployment | Railway | Your existing deploy pipeline, fast iteration |
