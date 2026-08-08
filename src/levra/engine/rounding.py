@@ -17,4 +17,4 @@ def quantize_size(value: Decimal) -> Decimal:
 
 
 def quantize_money(value: Decimal) -> Decimal:
-    return value.quantize(_MONEY_QUANTUM, rounding=ROUND_HALF_UP)
+    return value.quantize(_MONEY_QUANTUM, rounding=ROUND_DOWN)

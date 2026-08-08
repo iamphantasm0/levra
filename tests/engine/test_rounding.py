@@ -13,4 +13,4 @@ def test_size_always_rounds_down():
 
 
 def test_money_rounds_to_cents():
-    assert quantize_money(Decimal("40.006")) == Decimal("40.01")
+    assert quantize_money(Decimal("40.006")) == Decimal("40.00")
