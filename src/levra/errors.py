@@ -16,3 +16,15 @@ class InvalidZone(LevraError):
 
 class StopTooTight(LevraError):
     """Stop distance implies leverage above the ceiling on the stated capital."""
+
+
+class ThesisIncomplete(LevraError):
+    """The parser could not extract all required fields from the thesis text."""
+
+
+class NarrationFailed(LevraError):
+    """The narrator could not produce a valid scenario set."""
+
+
+class MarketDataError(LevraError):
+    """OKX returned an error envelope, a bad status, or an unusable payload."""
