@@ -4,13 +4,54 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository status
 
-This repo is **pre-implementation**. It currently contains only `plans/perp-position-architect-dev-plan.md` — the full product and delivery plan. There is no source tree, no git repository, and no build tooling yet.
+**Code-complete on the engine; the external surfaces are the open work.** All 18
+tasks of `plans/2026-08-08-engine-and-guardrails-build-plan.md` have landed as
+code. The deterministic engine, the LLM boundary, the guardrail suite, the API,
+and the contract are all real and tested.
 
-Read the plan before writing code. When scaffolding happens, replace the Commands section below with the real commands.
+What is *not* done, as of 2026-08-14:
+
+- `LevraLog.sol` compiles and its Foundry suite passes, but it is **not deployed**
+  to either X Layer network. `docs/deployments.md` tracks the address fields.
+- `log_to_chain` will write once `XLAYER_RPC_URL`, `LEVRA_LOG_ADDRESS` and
+  `CHAIN_LOGGER_PRIVATE_KEY` are set. Until then it is a deliberate no-op.
+- x402 verification checks proof *shape* and replay only. It does not verify a
+  signature cryptographically or confirm settlement — that needs a facilitator.
+- The Railway deployment was returning 404 (no service bound to the domain) and
+  needs re-attaching.
+
+Do not trust a status claim in this file or in the Obsidian vault without
+checking it against the code. The vault's `STATUS.md` was materially out of date
+once already.
 
 ## Commands
 
-Not yet established. Planned stack is FastAPI (Python) deployed on Railway. Once scaffolded, document here: dev server, test runner, single-test invocation, lint, and deploy.
+```bash
+# Setup
+uv sync --all-groups
+git clone --depth 1 --branch v1.16.2 \
+  https://github.com/foundry-rs/forge-std lib/forge-std   # for contract tests
+
+# Python
+uv run pytest -q                          # full suite
+uv run pytest tests/guardrails -q         # the boundary proofs
+uv run pytest tests/market/test_okx.py::TestFetchCandles -q   # single class
+uv run mypy                               # strict, src/levra only
+uv run ruff check .                       # lint
+uv run ruff check . --fix                 # autofix
+
+# Dev server
+uv run uvicorn levra.api:app --reload --port 8000
+
+# Contracts (needs foundryup)
+forge build
+forge test -vvv
+
+# Deploy — see docs/deployments.md for the full sequence
+```
+
+CI runs ruff, mypy, pytest, `forge build` and `forge test` on every push and PR
+(`.github/workflows/ci.yml`). Keep all five green.
 
 ## What Levra is
 
@@ -67,10 +108,19 @@ Liquidation-cluster data is the hardest data source and is explicitly a stretch.
 | API | FastAPI |
 | Deploy | Railway |
 | Market data | OKX public market API (candles, funding, OI) — no auth |
-| LLM | Claude API — parsing and narration only |
+| LLM | Claude (Sonnet) **via OpenRouter**, using the OpenAI-compatible SDK — parsing and narration only |
 | Payments | x402 (HTTP 402 + stablecoin settlement) |
 | On-chain | Minimal Solidity contract on X Layer (`LevraLog.sol`) storing spec hash + timestamp |
 | Listing | Registered as an ASP on OKX.ai |
+
+**The LLM key is `OPENROUTER_API_KEY`, not `ANTHROPIC_API_KEY`.** Claude is
+reached through the OpenRouter gateway, so the dependency is `openai` and there
+is no `anthropic` package. Earlier notes referred to an `ANTHROPIC_API_KEY` that
+no code path has ever read — setting it does nothing.
+
+X Layer chain IDs, verified live on 2026-08-14: **mainnet 196**, **testnet
+1952**. The widely cached "195" is the retired zkEVM testnet. See
+`docs/deployments.md`.
 
 On-chain logging exists to give the agent an auditable, tamper-proof track record — proof that results aren't cherry-picked after the fact. It is a differentiator, not incidental plumbing.
 
