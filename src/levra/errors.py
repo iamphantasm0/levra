@@ -28,3 +28,11 @@ class NarrationFailed(LevraError):
 
 class MarketDataError(LevraError):
     """OKX returned an error envelope, a bad status, or an unusable payload."""
+
+
+class ConfigError(LevraError):
+    """A required deployment variable is missing or malformed.
+
+    Distinct from the domain errors above: this is an operator problem, not a
+    caller problem, and maps to 503 rather than 4xx.
+    """

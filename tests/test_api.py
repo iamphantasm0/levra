@@ -42,7 +42,10 @@ def _make_llm_mock(responses):
         choice.message = AsyncMock()
         if idx[0] < len(responses):
             choice.message.tool_calls = [
-                _tool_call_block("extract_thesis" if idx[0] == 0 else "narrate_scenarios", responses[idx[0]])
+                _tool_call_block(
+                    "extract_thesis" if idx[0] == 0 else "narrate_scenarios",
+                    responses[idx[0]],
+                )
             ]
             idx[0] += 1
         else:

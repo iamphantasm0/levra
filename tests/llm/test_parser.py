@@ -57,14 +57,18 @@ class TestParseThesis:
 
     async def test_integer_capital_parses_as_decimal(self):
         client = _mock_client(
-            _mock_response([_tool_call_block("extract_thesis", {**_VALID_INPUT, "capital_usd": 2000})])
+            _mock_response(
+                [_tool_call_block("extract_thesis", {**_VALID_INPUT, "capital_usd": 2000})]
+            )
         )
         thesis = await parse_thesis("x", client)
         assert thesis.capital == Decimal("2000")
 
     async def test_float_capital_parses_as_decimal(self):
         client = _mock_client(
-            _mock_response([_tool_call_block("extract_thesis", {**_VALID_INPUT, "capital_usd": 2000.0})])
+            _mock_response(
+                [_tool_call_block("extract_thesis", {**_VALID_INPUT, "capital_usd": 2000.0})]
+            )
         )
         thesis = await parse_thesis("x", client)
         assert thesis.capital == Decimal("2000.0")
@@ -78,14 +82,18 @@ class TestParseThesis:
 
     async def test_missing_capital_raises_thesis_incomplete(self):
         client = _mock_client(
-            _mock_response([_tool_call_block("extract_thesis", {**_VALID_INPUT, "capital_usd": None})])
+            _mock_response(
+                [_tool_call_block("extract_thesis", {**_VALID_INPUT, "capital_usd": None})]
+            )
         )
         with pytest.raises(ThesisIncomplete, match="capital"):
             await parse_thesis("x", client)
 
     async def test_negative_capital_raises_thesis_incomplete(self):
         client = _mock_client(
-            _mock_response([_tool_call_block("extract_thesis", {**_VALID_INPUT, "capital_usd": -100})])
+            _mock_response(
+                [_tool_call_block("extract_thesis", {**_VALID_INPUT, "capital_usd": -100})]
+            )
         )
         with pytest.raises(ThesisIncomplete):
             await parse_thesis("x", client)
@@ -99,14 +107,18 @@ class TestParseThesis:
 
     async def test_horizon_clamped_to_365(self):
         client = _mock_client(
-            _mock_response([_tool_call_block("extract_thesis", {**_VALID_INPUT, "horizon_days": 9999})])
+            _mock_response(
+                [_tool_call_block("extract_thesis", {**_VALID_INPUT, "horizon_days": 9999})]
+            )
         )
         thesis = await parse_thesis("x", client)
         assert thesis.horizon_days == 365
 
     async def test_horizon_clamped_to_1(self):
         client = _mock_client(
-            _mock_response([_tool_call_block("extract_thesis", {**_VALID_INPUT, "horizon_days": -5})])
+            _mock_response(
+                [_tool_call_block("extract_thesis", {**_VALID_INPUT, "horizon_days": -5})]
+            )
         )
         thesis = await parse_thesis("x", client)
         assert thesis.horizon_days == 1

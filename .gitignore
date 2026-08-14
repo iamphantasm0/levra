@@ -5,3 +5,11 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .env
+
+# Foundry. Dependencies are fetched at a pinned tag rather than vendored —
+# see the setup step in docs/deployments.md and .github/workflows/ci.yml.
+lib/
+out/
+cache/
+broadcast/
+foundry.lock

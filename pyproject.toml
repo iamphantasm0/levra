@@ -9,6 +9,7 @@ dependencies = [
     "pydantic>=2.9.0",
     "openai>=1.0.0",
     "pycryptodome>=3.21.0",
+    "web3>=7.6.0",
 ]
 
 [dependency-groups]
@@ -32,6 +33,8 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+# Vendored Foundry dependency - not ours to lint.
+extend-exclude = ["lib", "out", "cache"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM"]

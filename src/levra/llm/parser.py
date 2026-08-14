@@ -132,8 +132,8 @@ async def parse_thesis(text: str, client: AsyncOpenAI) -> Thesis:
 
     try:
         inp = json.loads(tc.function.arguments)
-    except json.JSONDecodeError:
-        raise ThesisIncomplete("Model returned invalid JSON arguments")
+    except json.JSONDecodeError as err:
+        raise ThesisIncomplete("Model returned invalid JSON arguments") from err
 
     asset = _asset_from_input(inp.get("asset"))
     direction = _direction_from_input(inp.get("direction"))

@@ -1,12 +1,25 @@
 """FastAPI application — x402-payable endpoint."""
 
+import asyncio
+import logging
+from collections.abc import AsyncIterator, Coroutine
+from contextlib import asynccontextmanager
+from typing import Any
 
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from levra.chain import log_to_chain
+from levra.config import (
+    LLM_API_KEY_VAR,
+    chain_logging_is_configured,
+    llm_is_configured,
+    x402_pay_to,
+)
 from levra.engine.build import build_spec
 from levra.errors import (
+    ConfigError,
     InvalidZone,
     LevraError,
     MarketDataError,
@@ -29,15 +42,55 @@ from levra.schemas import (
     SpecResponse,
 )
 
+logger = logging.getLogger(__name__)
+
 OKX_BASE_URL = "https://www.okx.com"
 
-app = FastAPI(title="Levra", version="0.1.0")
+# Strong references to in-flight background tasks. asyncio only holds a weak
+# reference to a bare create_task, so a fire-and-forget task can be garbage
+# collected mid-flight — silently losing the chain write it was created for.
+_background_tasks: set[asyncio.Task[Any]] = set()
+
+
+def _spawn_background(coro: Coroutine[Any, Any, Any]) -> None:
+    task = asyncio.create_task(coro)
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Report configuration state at boot.
+
+    Deliberately does not abort startup on missing configuration: /health is the
+    platform healthcheck, and keeping it up is what makes a misconfigured deploy
+    diagnosable rather than merely dead. Each specific failure is logged loudly
+    here, and /spec returns 503 while the key is absent.
+    """
+    if not llm_is_configured():
+        logger.critical(
+            "%s is not set - POST /spec will return 503 until it is configured.",
+            LLM_API_KEY_VAR,
+        )
+    if not chain_logging_is_configured():
+        logger.warning(
+            "chain logging is disabled - set XLAYER_RPC_URL, LEVRA_LOG_ADDRESS and "
+            "CHAIN_LOGGER_PRIVATE_KEY to write spec hashes to X Layer."
+        )
+    if not x402_pay_to():
+        logger.error("X402_PAY_TO_ADDRESS is not set - payment challenges name no payee.")
+    yield
+
+
+app = FastAPI(title="Levra", version="0.1.0", lifespan=lifespan)
 app.add_middleware(X402Middleware)
 
 
 @app.exception_handler(LevraError)
 async def levra_exception_handler(request: Request, exc: LevraError) -> JSONResponse:
     status = _status_for(exc)
+    if status >= 500:
+        logger.error("request failed with %d: %s", status, exc)
     return JSONResponse(
         status_code=status,
         content={"detail": str(exc)},
@@ -53,6 +106,8 @@ def _status_for(exc: LevraError) -> int:
         InvalidZone: 422,
         MarketDataError: 502,
         NarrationFailed: 502,
+        # An operator problem, not a caller problem.
+        ConfigError: 503,
     }
     for exc_type, status in mapping.items():
         if isinstance(exc, exc_type):
@@ -78,10 +133,8 @@ async def generate_spec(req: SpecRequest) -> SpecResponse:
     spec = build_spec(thesis, snapshot)
     scenarios = await narrate(spec, llm)
 
-    import asyncio
-
-    from levra.chain import log_to_chain
-    asyncio.create_task(log_to_chain(spec))
+    # Corroboration, not part of the product path — never awaited, never fatal.
+    _spawn_background(log_to_chain(spec))
 
     return SpecResponse(
         asset=spec.asset,
