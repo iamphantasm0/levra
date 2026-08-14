@@ -92,8 +92,8 @@ async def narrate(spec: PositionSpec, client: AsyncOpenAI) -> Scenarios:
 
     try:
         inp = json.loads(tc.function.arguments)
-    except json.JSONDecodeError:
-        raise NarrationFailed("Model returned invalid JSON arguments")
+    except json.JSONDecodeError as err:
+        raise NarrationFailed("Model returned invalid JSON arguments") from err
 
     bull = inp.get("bull")
     base = inp.get("base")
